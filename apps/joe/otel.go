@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/propagation"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
@@ -18,8 +15,6 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
-var otelExporterType = os.Getenv("OTEL_EXPORTER_TYPE")
-
 func NewTraceProvider(
 	ctx context.Context,
 ) *sdktrace.TracerProvider {
@@ -27,16 +22,7 @@ func NewTraceProvider(
 	var exp sdktrace.SpanExporter
 	var err error
 
-	switch otelExporterType {
-	case "otlp":
-		exp, err = otlptracegrpc.New(ctx)
-	default:
-		exp, err = stdouttrace.New(
-			// Use human readable output.
-			stdouttrace.WithPrettyPrint(),
-		)
-	}
-
+	exp, err = otlptracegrpc.New(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -90,13 +76,7 @@ func NewMetricProvider(
 	var exp sdkmetric.Exporter
 	var err error
 
-	switch otelExporterType {
-	case "otlp":
-		exp, err = otlpmetricgrpc.New(ctx)
-	default:
-		exp, err = stdoutmetric.New()
-	}
-
+	exp, err = otlpmetricgrpc.New(ctx)
 	if err != nil {
 		panic(err)
 	}

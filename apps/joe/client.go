@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 	"strconv"
 	"time"
 
@@ -19,20 +18,13 @@ import (
 )
 
 var (
-	appName = os.Getenv("APP_NAME")
-
-	httpserverRequestInterval = os.Getenv("HTTP_SERVER_REQUEST_INTERVAL")
-	httpserverEndpoint        = os.Getenv("HTTP_SERVER_ENDPOINT")
-	httpserverPort            = os.Getenv("HTTP_SERVER_PORT")
-
-	httpClient *http.Client
-
+	httpClient         *http.Client
 	httpClientDuration instrument.Float64Histogram
 )
 
 func SimulateHttpServer() {
 
-	interval, err := strconv.ParseInt(httpserverRequestInterval, 10, 64)
+	interval, err := strconv.ParseInt(donaldRequestInterval, 10, 64)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -88,7 +80,7 @@ func httpList() {
 	// Create HTTP request with trace context
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodGet,
-		"http://"+httpserverEndpoint+":"+httpserverPort+"/list",
+		"http://"+donaldEndpoint+":"+donaldPort+"/list",
 		nil,
 	)
 	if err != nil {
@@ -132,7 +124,7 @@ func httpDelete() {
 	// Create HTTP request with trace context
 	req, err := http.NewRequestWithContext(
 		ctx, http.MethodDelete,
-		"http://"+httpserverEndpoint+":"+httpserverPort+"/delete",
+		"http://"+donaldEndpoint+":"+donaldPort+"/delete",
 		nil,
 	)
 	if err != nil {
@@ -170,12 +162,12 @@ func recordClientDuration(
 	statusCode int,
 ) {
 	elapsedTime := float64(time.Since(startTime)) / float64(time.Millisecond)
-	httpserverPortAsInt, _ := strconv.Atoi(httpserverPort)
+	httpserverPortAsInt, _ := strconv.Atoi(donaldPort)
 	attributes := attribute.NewSet(
 		semconv.HTTPSchemeHTTP,
 		semconv.HTTPFlavorKey.String("1.1"),
 		semconv.HTTPMethod("DELETE"),
-		semconv.NetPeerName(httpserverEndpoint),
+		semconv.NetPeerName(donaldEndpoint),
 		semconv.NetPeerPort(httpserverPortAsInt),
 		semconv.HTTPStatusCode(statusCode),
 	)

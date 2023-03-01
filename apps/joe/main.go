@@ -6,7 +6,19 @@ import (
 	"os/signal"
 )
 
+var (
+	appName string
+
+	donaldRequestInterval string
+	donaldEndpoint        string
+	donaldPort            string
+)
+
 func main() {
+
+	// Parse arguments and feature flags
+	parseFlags()
+
 	// Get context
 	ctx := context.Background()
 
@@ -25,4 +37,11 @@ func main() {
 	defer cancel()
 
 	<-ctx.Done()
+}
+
+func parseFlags() {
+	appName = os.Getenv("APP_NAME")
+	donaldRequestInterval = os.Getenv("DONALD_REQUEST_INTERVAL")
+	donaldEndpoint = os.Getenv("DONALD_ENDPOINT")
+	donaldPort = os.Getenv("DONALD_PORT")
 }
