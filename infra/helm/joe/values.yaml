@@ -1,0 +1,41 @@
+### Variables
+
+# Name
+name: joe
+
+# Port
+port: 8080
+
+# Replicas
+replicas: 1
+
+# Resources
+resources:
+  # Requests
+  requests:
+    # CPU
+    cpu: 20m
+    # Memory
+    memory: 50Mi
+  # Limits
+  limits:
+    # CPU
+    cpu: 800m
+    # Memory
+    memory: 1000Mi
+
+# OTLP
+otlp:
+  # Endpoint  
+  endpoint: "https://otlp.nr-data.net:4317"
+  # Headers
+  headers: ""
+
+# Parameters for donald
+donald:
+  # Interval between each request
+  requestInterval: "2000"
+  # Endpoint of HTTP server
+  endpoint: "donald.otel.svc.cluster.local"
+  # Port of HTTP server
+  port: "8080"
