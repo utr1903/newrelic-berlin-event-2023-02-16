@@ -61,6 +61,15 @@ donald["namespace"]="otel"
 donald["replicas"]=1
 donald["port"]=8080
 
+# joe
+declare -A joe
+joe["name"]="joe"
+joe["imageName"]="${repoName}:${joe[name]}-${platform}"
+joe["namespace"]="otel"
+joe["replicas"]=1
+joe["port"]=8080
+joe["interval"]=2000
+
 ####################
 ### Build & Push ###
 ####################
@@ -72,6 +81,13 @@ if [[ $build == "true" ]]; then
     --tag "${DOCKERHUB_NAME}/${donald[imageName]}" \
     "../../apps/${donald[name]}/."
   docker push "${DOCKERHUB_NAME}/${donald[imageName]}"
+
+  # joe
+  docker build \
+    --platform "linux/${platform}" \
+    --tag "${DOCKERHUB_NAME}/${joe[imageName]}" \
+    "../../apps/${joe[name]}/."
+  docker push "${DOCKERHUB_NAME}/${joe[imageName]}"
 fi
 
 ###################
@@ -142,6 +158,25 @@ helm upgrade ${donald[name]} \
   --set mysql.port=${mysql[port]} \
   --set mysql.database=${mysql[database]} \
   --set mysql.table=${mysql[table]} \
-  --set features.considerDatabaseSpans=false \
+  --set features.considerDatabaseSpans="false" \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
   "../helm/${donald[name]}"
+
+# joe
+helm upgrade ${joe[name]} \
+  --install \
+  --wait \
+  --debug \
+  --create-namespace \
+  --namespace=${joe[namespace]} \
+  --set dockerhubName=$DOCKERHUB_NAME \
+  --set imageName=${joe[imageName]} \
+  --set imagePullPolicy="Always" \
+  --set name=${joe[name]} \
+  --set replicas=${joe[replicas]} \
+  --set port=${joe[port]} \
+  --set donald.requestInterval=${joe[interval]} \
+  --set donald.endpoint="${donald[name]}.${donald[namespace]}.svc.cluster.local" \
+  --set donald.port="${donald[port]}" \
+  --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
+  "../helm/${joe[namespace]}"
