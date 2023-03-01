@@ -1,0 +1,52 @@
+### Variables
+
+# Name
+name: donald
+
+# Port
+port: 8080
+
+# Replicas
+replicas: 1
+
+# Resources
+resources:
+  # Requests
+  requests:
+    # CPU
+    cpu: 20m
+    # Memory
+    memory: 50Mi
+  # Limits
+  limits:
+    # CPU
+    cpu: 800m
+    # Memory
+    memory: 1000Mi
+
+# OTLP
+otlp:
+  # Endpoint  
+  endpoint: "https://otlp.nr-data.net:4317"
+  # Headers
+  headers: ""
+
+# MySQL
+mysql:
+  # Server path
+  server: ""
+  # Username
+  username: "root"
+  # Password
+  password: ""
+  # Port
+  port: 3306
+  # Database
+  database: ""
+  # Table
+  table: ""
+
+# Feature flags
+features:
+  # Flag whether the database calls should be tracked with spans
+  considerDatabaseSpans: false

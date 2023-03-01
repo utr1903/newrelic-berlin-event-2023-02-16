@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  replicas: {{ .Values.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.name }}
+    spec:
+      containers:
+        - name: {{ .Values.name }}
+          image: "{{ .Values.dockerhubName }}/{{ .Values.imageName }}"
+          imagePullPolicy: {{ .Values.imagePullPolicy }}
+          env:
+            - name: APP_NAME
+              value: {{ .Values.name }}
+            - name: APP_PORT
+              value: "{{ .Values.port }}"
+            - name: MYSQL_SERVER
+              value: {{ .Values.mysql.server }}
+            - name: MYSQL_USERNAME
+              value: {{ .Values.mysql.username }}
+            - name: MYSQL_PASSWORD
+              value: {{ .Values.mysql.password }}
+            - name: MYSQL_PORT
+              value: "{{ .Values.mysql.port }}"
+            - name: MYSQL_DATABASE
+              value: {{ .Values.mysql.database }}
+            - name: MYSQL_TABLE
+              value: {{ .Values.mysql.table }}
+            - name: OTEL_SERVICE_NAME
+              value: {{ .Values.name }}
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.otlp.endpoint }}
+            - name: OTEL_EXPORTER_OTLP_HEADERS
+              value: {{ .Values.otlp.headers }}
+            - name: CONSIDER_DATABASE_SPANS
+              value: {{ .Values.features.considerDatabaseSpans }}
+          ports:
+            - protocol: TCP
+              containerPort: {{ .Values.port }}
+          resources:
+            requests:
+              cpu: {{ .Values.resources.requests.cpu }}
+              memory: {{ .Values.resources.requests.memory }}
+            limits:
+              cpu: {{ .Values.resources.limits.cpu }}
+              memory: {{ .Values.resources.limits.memory }}
