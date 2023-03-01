@@ -15,7 +15,7 @@ import (
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 )
 
-func NewTraceProvider(
+func newTraceProvider(
 	ctx context.Context,
 ) *sdktrace.TracerProvider {
 
@@ -58,7 +58,7 @@ func NewTraceProvider(
 	return tp
 }
 
-func ShutdownTraceProvider(
+func shutdownTraceProvider(
 	ctx context.Context,
 	tp *sdktrace.TracerProvider,
 ) {
@@ -70,7 +70,7 @@ func ShutdownTraceProvider(
 	}
 }
 
-func NewMetricProvider(
+func newMetricProvider(
 	ctx context.Context,
 ) *sdkmetric.MeterProvider {
 	var exp sdkmetric.Exporter
@@ -87,7 +87,7 @@ func NewMetricProvider(
 	return mp
 }
 
-func ShutdownMetricProvider(
+func shutdownMetricProvider(
 	ctx context.Context,
 	mp *sdkmetric.MeterProvider,
 ) {

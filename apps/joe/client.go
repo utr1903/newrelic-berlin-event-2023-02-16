@@ -8,10 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/metric/instrument"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -21,52 +19,6 @@ var (
 	httpClient         *http.Client
 	httpClientDuration instrument.Float64Histogram
 )
-
-func SimulateHttpServer() {
-
-	interval, err := strconv.ParseInt(donaldRequestInterval, 10, 64)
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	httpClient = &http.Client{
-		Transport: otelhttp.NewTransport(http.DefaultTransport),
-		Timeout:   time.Duration(30 * time.Second),
-	}
-
-	httpClientDuration, err = global.MeterProvider().
-		Meter(appName).
-		Float64Histogram("http.client.duration")
-	if err != nil {
-		fmt.Println(err.Error())
-		return
-	}
-
-	// LIST simulator
-	go func() {
-		for {
-
-			// Make request after each interval
-			time.Sleep(time.Duration(interval) * time.Millisecond)
-
-			// List
-			httpList()
-		}
-	}()
-
-	// DELETE simulator
-	go func() {
-		for {
-
-			// Make request after each interval * 4
-			time.Sleep(4 * time.Duration(interval) * time.Millisecond)
-
-			// Delete
-			httpDelete()
-		}
-	}()
-}
 
 func httpList() {
 
