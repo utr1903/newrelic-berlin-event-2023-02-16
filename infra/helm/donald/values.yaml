@@ -49,4 +49,4 @@ mysql:
 # Feature flags
 features:
   # Flag whether the database calls should be tracked with spans
-  considerDatabaseSpans: false
+  considerDatabaseSpans: "false"
