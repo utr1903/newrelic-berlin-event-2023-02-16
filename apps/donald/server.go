@@ -86,17 +86,21 @@ func deleteHandler(
 	r *http.Request,
 ) {
 
+	// Get current parentSpan
+	parentSpan := trace.SpanFromContext(r.Context())
+	defer parentSpan.End()
+
 	if r.Method != http.MethodDelete {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"))
+		return
 	}
+
+	// Parse query parameters
+	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
 
 	// Build query
 	dbOperation := "DELETE"
 	dbStatement := dbOperation + " FROM " + mysqlTable
-
-	// Get current parentSpan
-	parentSpan := trace.SpanFromContext(r.Context())
-	defer parentSpan.End()
 
 	// Create db span
 	if considerDatabaseSpans {
@@ -110,25 +114,49 @@ func deleteHandler(
 		defer dbSpan.End()
 
 		// Set additional span attributes
-		dbSpan.SetAttributes(
-			attribute.String("db.system", "mysql"),
-			attribute.String("db.user", mysqlUsername),
-			attribute.String("net.peer.name", mysqlServer),
-			attribute.String("net.peer.port", mysqlPort),
-			attribute.String("net.transport", "IP.TCP"),
-			attribute.String("db.name", mysqlDatabase),
-			attribute.String("db.sql.table", mysqlTable),
-			attribute.String("db.statement", dbStatement),
-			attribute.String("db.operation", dbOperation),
-		)
-	}
+		dbSpanAttrs := getCommonDbSpanAttributes()
+		dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
+		dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.operation", dbOperation))
 
-	// Perform query
-	_, err := db.Exec(dbStatement)
-	if err != nil {
-		fmt.Println(err.Error())
-		createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
-		return
+		// Perform query
+		_, err := db.Exec(dbStatement)
+		if err != nil {
+			fmt.Println(err.Error())
+
+			// Add status code
+			dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
+			dbSpan.SetAttributes(dbSpanAttrs...)
+
+			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+			return
+		}
+
+		if createDatabaseConnectionError == "true" {
+			fmt.Println("Connection to database is lost.")
+
+			// Add status code
+			dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
+			dbSpan.SetAttributes(dbSpanAttrs...)
+
+			createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."))
+			return
+		}
+		dbSpan.SetAttributes(dbSpanAttrs...)
+	} else {
+
+		// Perform query
+		_, err := db.Exec(dbStatement)
+		if err != nil {
+			fmt.Println(err.Error())
+			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+			return
+		}
+
+		if createDatabaseConnectionError == "true" {
+			fmt.Println("Connection to database is lost.")
+			createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."))
+			return
+		}
 	}
 
 	createHttpResponse(&w, http.StatusOK, []byte("Success"))
@@ -136,9 +164,21 @@ func deleteHandler(
 
 func createHttpResponse(
 	w *http.ResponseWriter,
-	statusCode uint,
+	statusCode int,
 	body []byte,
 ) {
-	(*w).WriteHeader(http.StatusOK)
+	(*w).WriteHeader(statusCode)
 	(*w).Write(body)
+}
+
+func getCommonDbSpanAttributes() []attribute.KeyValue {
+	return []attribute.KeyValue{
+		attribute.String("db.system", "mysql"),
+		attribute.String("db.user", mysqlUsername),
+		attribute.String("net.peer.name", mysqlServer),
+		attribute.String("net.peer.port", mysqlPort),
+		attribute.String("net.transport", "IP.TCP"),
+		attribute.String("db.name", mysqlDatabase),
+		attribute.String("db.sql.table", mysqlTable),
+	}
 }
