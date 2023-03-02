@@ -38,7 +38,7 @@ func main() {
 	defer db.Close()
 
 	// Serve
-	http.Handle("/api", otelhttp.NewHandler(http.HandlerFunc(handler), "delete"))
+	http.Handle("/api", otelhttp.NewHandler(http.HandlerFunc(handler), "api"))
 	http.ListenAndServe(":"+appPort, nil)
 }
 
