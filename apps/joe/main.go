@@ -82,7 +82,7 @@ func simulate() {
 			time.Sleep(time.Duration(interval) * time.Millisecond)
 
 			// List
-			httpList()
+			performHttpCall(http.MethodGet)
 		}
 	}()
 
@@ -94,7 +94,7 @@ func simulate() {
 			time.Sleep(4 * time.Duration(interval) * time.Millisecond)
 
 			// Delete
-			httpDelete()
+			performHttpCall(http.MethodDelete)
 		}
 	}()
 }
