@@ -21,19 +21,31 @@ func handler(
 	defer parentSpan.End()
 
 	// Perform database query
-	if considerDatabaseSpans {
-		err := performQueryWithDbSpan(w, r, &parentSpan)
-		if err != nil {
-			return
-		}
-	} else {
-		err := performQueryWithoutDbSpan(w, r, &parentSpan)
-		if err != nil {
-			return
-		}
+	err := performQuery(w, r, &parentSpan)
+	if err != nil {
+		return
 	}
 
 	createHttpResponse(&w, http.StatusOK, []byte("Success"), &parentSpan)
+}
+
+func performQuery(
+	w http.ResponseWriter,
+	r *http.Request,
+	parentSpan *trace.Span,
+) error {
+	if considerDatabaseSpans {
+		err := performQueryWithDbSpan(w, r, parentSpan)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := performQueryWithoutDbSpan(w, r, parentSpan)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func performQueryWithDbSpan(
