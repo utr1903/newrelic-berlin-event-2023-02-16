@@ -75,8 +75,8 @@ func performQueryWithDbSpan(
 	}
 
 	// Create database connection error
-	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
-	if createDatabaseConnectionError == "true" {
+	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
+	if databaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
 
 		// Add status code
@@ -110,8 +110,8 @@ func performQueryWithoutDbSpan(
 	}
 
 	// Parse query parameters
-	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
-	if createDatabaseConnectionError == "true" {
+	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
+	if databaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
 		return errors.New("database connection lost")
