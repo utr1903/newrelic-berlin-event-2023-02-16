@@ -45,6 +45,7 @@ func main() {
 func parseFlags() {
 	appName = os.Getenv("APP_NAME")
 	appPort = os.Getenv("APP_PORT")
+
 	considerDatabaseSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_DATABASE_SPANS"))
 	considerPostprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_POSTPROCESSING_SPANS"))
 }
