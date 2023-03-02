@@ -43,7 +43,7 @@ func performQueryWithDbSpan(
 ) error {
 
 	// Build query
-	dbOperation, dbStatement, err := createDbQuery(r.Method)
+	dbOperation, dbStatement, err := createDbQuery(r)
 	if err != nil {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
@@ -60,8 +60,8 @@ func performQueryWithDbSpan(
 
 	// Set additional span attributes
 	dbSpanAttrs := getCommonDbSpanAttributes()
-	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
 	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.operation", dbOperation))
+	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
 
 	// Perform query
 	err = executeDbQuery(r.Method, dbStatement)
@@ -74,7 +74,7 @@ func performQueryWithDbSpan(
 		return err
 	}
 
-	// Parse query parameters
+	// Create database connection error
 	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
 	if createDatabaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
@@ -96,7 +96,7 @@ func performQueryWithoutDbSpan(
 	parentSpan *trace.Span,
 ) error {
 	// Build query
-	_, dbStatement, err := createDbQuery(r.Method)
+	_, dbStatement, err := createDbQuery(r)
 	if err != nil {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
@@ -120,16 +120,24 @@ func performQueryWithoutDbSpan(
 }
 
 func createDbQuery(
-	httpMethod string,
+	r *http.Request,
 ) (
 	string,
 	string,
 	error,
 ) {
-	switch httpMethod {
+	switch r.Method {
 	case http.MethodGet:
 		dbOperation := "SELECT"
-		dbStatement := dbOperation + " name FROM " + mysqlTable
+		var dbStatement string
+
+		// Create table does not exist error
+		tableDoesNotExistError := r.URL.Query().Get("tableDoesNotExistError")
+		if tableDoesNotExistError == "true" {
+			dbStatement = dbOperation + " name FROM " + "faketable"
+		} else {
+			dbStatement = dbOperation + " name FROM " + mysqlTable
+		}
 		return dbOperation, dbStatement, nil
 	case http.MethodDelete:
 		dbOperation := "DELETE"
