@@ -45,6 +45,7 @@ func performQueryWithDbSpan(
 	// Build query
 	dbOperation, dbStatement, err := createDbQuery(r.Method)
 	if err != nil {
+		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
 	}
 
@@ -83,7 +84,7 @@ func performQueryWithDbSpan(
 		dbSpan.SetAttributes(dbSpanAttrs...)
 
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
-		return err
+		return errors.New("database connection lost")
 	}
 	dbSpan.SetAttributes(dbSpanAttrs...)
 	return nil
@@ -97,6 +98,7 @@ func performQueryWithoutDbSpan(
 	// Build query
 	_, dbStatement, err := createDbQuery(r.Method)
 	if err != nil {
+		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
 	}
 
@@ -112,7 +114,7 @@ func performQueryWithoutDbSpan(
 	if createDatabaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
-		return err
+		return errors.New("database connection lost")
 	}
 	return nil
 }

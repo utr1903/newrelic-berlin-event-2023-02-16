@@ -52,7 +52,7 @@ func performHttpCall(
 	res, err := httpClient.Do(req)
 	if err != nil {
 		fmt.Println(err.Error())
-		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
+		recordClientDuration(ctx, httpMethod, http.StatusInternalServerError, requestStartTime)
 		return
 	}
 	defer res.Body.Close()
