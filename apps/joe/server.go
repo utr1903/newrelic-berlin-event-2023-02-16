@@ -2,10 +2,10 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"runtime"
 
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
@@ -88,7 +88,7 @@ func produceException(
 	preprocessingException := r.URL.Query().Get("preprocessingException")
 	if preprocessingException == "true" {
 		msg := "Provided data format is invalid and cannot be processed"
-		fmt.Println(msg)
+		logrus.WithFields(logrus.Fields{}).Error(msg)
 		return msg, errors.New("preprocessing failed")
 	}
 	return "", nil

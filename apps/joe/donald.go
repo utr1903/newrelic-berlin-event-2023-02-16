@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric/instrument"
@@ -38,7 +38,7 @@ func performHttpCall(
 		nil,
 	)
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.WithFields(logrus.Fields{}).Error(err.Error())
 		return err
 	}
 
@@ -51,7 +51,7 @@ func performHttpCall(
 	// Perform HTTP request
 	res, err := httpClient.Do(req)
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.WithFields(logrus.Fields{}).Error(err.Error())
 		recordClientDuration(ctx, httpMethod, http.StatusInternalServerError, requestStartTime)
 		return err
 	}
@@ -60,7 +60,7 @@ func performHttpCall(
 	// Read HTTP response
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.WithFields(logrus.Fields{}).Error(err.Error())
 		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
 		return err
 	}

@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/metric/global"
 )
@@ -15,6 +15,8 @@ import (
 var (
 	appName string
 	appPort string
+
+	logLevel string
 
 	donaldRequestInterval string
 	donaldEndpoint        string
@@ -27,6 +29,9 @@ func main() {
 
 	// Parse arguments and feature flags
 	parseFlags()
+
+	// Init logger
+	initLogger()
 
 	// Get context
 	ctx := context.Background()
@@ -51,6 +56,8 @@ func parseFlags() {
 	appName = os.Getenv("APP_NAME")
 	appPort = os.Getenv("APP_PORT")
 
+	logLevel = os.Getenv("LOG_LEVEL")
+
 	donaldRequestInterval = os.Getenv("DONALD_REQUEST_INTERVAL")
 	donaldEndpoint = os.Getenv("DONALD_ENDPOINT")
 	donaldPort = os.Getenv("DONALD_PORT")
@@ -58,12 +65,25 @@ func parseFlags() {
 	considerPreprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_PREPROCESSING_SPANS"))
 }
 
+func initLogger() {
+
+	// Set log level
+	switch logLevel {
+	case "WARN":
+		logrus.SetLevel(logrus.WarnLevel)
+	default:
+		logrus.SetLevel(logrus.InfoLevel)
+	}
+
+	// Set formatter
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+}
+
 func simulate() {
 
 	interval, err := strconv.ParseInt(donaldRequestInterval, 10, 64)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		logrus.WithFields(logrus.Fields{}).Error(err.Error())
 	}
 
 	httpClient = &http.Client{
@@ -75,7 +95,7 @@ func simulate() {
 		Meter(appName).
 		Float64Histogram("http.client.duration")
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.WithFields(logrus.Fields{}).Error(err.Error())
 		return
 	}
 
