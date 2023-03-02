@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -26,6 +27,7 @@ func handler(
 		return
 	}
 
+	performPostprocessing(r, &parentSpan)
 	createHttpResponse(&w, http.StatusOK, []byte("Success"), &parentSpan)
 }
 
@@ -228,5 +230,36 @@ func getCommonDbSpanAttributes() []attribute.KeyValue {
 		attribute.String("net.transport", "IP.TCP"),
 		attribute.String("db.name", mysqlDatabase),
 		attribute.String("db.sql.table", mysqlTable),
+	}
+}
+
+func performPostprocessing(
+	r *http.Request,
+	parentSpan *trace.Span,
+) {
+
+	if considerPostprocessingSpans {
+		_, processingSpan := (*parentSpan).TracerProvider().
+			Tracer(appName).
+			Start(
+				r.Context(),
+				"postprocessing",
+				trace.WithSpanKind(trace.SpanKindInternal),
+			)
+		defer processingSpan.End()
+	}
+
+	produceSchemaNotFoundInCacheWarning(r)
+}
+
+func produceSchemaNotFoundInCacheWarning(
+	r *http.Request,
+) {
+	schemaNotFoundInCacheWarning := r.URL.Query().Get("schemaNotFoundInCacheWarning")
+	if schemaNotFoundInCacheWarning == "true" {
+		fmt.Println("Processing schema not found in cache. Calculating from scratch.")
+		time.Sleep(time.Millisecond * 500)
+	} else {
+		time.Sleep(time.Millisecond * 10)
 	}
 }
