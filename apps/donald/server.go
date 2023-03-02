@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"go.opentelemetry.io/otel/attribute"
+	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -15,17 +16,17 @@ func listHandler(
 	r *http.Request,
 ) {
 
+	// Get current parentSpan
+	parentSpan := trace.SpanFromContext(r.Context())
+	defer parentSpan.End()
+
 	if r.Method != http.MethodGet {
-		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"))
+		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), &parentSpan)
 	}
 
 	// Build db query
 	dbOperation := "SELECT"
 	dbStatement := dbOperation + " name FROM " + mysqlTable
-
-	// Get current parentSpan
-	parentSpan := trace.SpanFromContext(r.Context())
-	defer parentSpan.End()
 
 	// Create db span
 	if considerDatabaseSpans {
@@ -66,7 +67,7 @@ func listHandler(
 		err = rows.Scan(&name)
 		if err != nil {
 			fmt.Println(err)
-			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()), &parentSpan)
 			break
 		}
 		names = append(names, name)
@@ -75,10 +76,10 @@ func listHandler(
 	resBody, err := json.Marshal(names)
 	if err != nil {
 		fmt.Println(err)
-		createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+		createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()), &parentSpan)
 	}
 
-	createHttpResponse(&w, http.StatusOK, resBody)
+	createHttpResponse(&w, http.StatusOK, resBody, &parentSpan)
 }
 
 func deleteHandler(
@@ -91,7 +92,7 @@ func deleteHandler(
 	defer parentSpan.End()
 
 	if r.Method != http.MethodDelete {
-		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"))
+		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), &parentSpan)
 		return
 	}
 
@@ -127,7 +128,7 @@ func deleteHandler(
 			dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
 			dbSpan.SetAttributes(dbSpanAttrs...)
 
-			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()), &parentSpan)
 			return
 		}
 
@@ -138,7 +139,7 @@ func deleteHandler(
 			dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
 			dbSpan.SetAttributes(dbSpanAttrs...)
 
-			createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."))
+			createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), &parentSpan)
 			return
 		}
 		dbSpan.SetAttributes(dbSpanAttrs...)
@@ -148,27 +149,34 @@ func deleteHandler(
 		_, err := db.Exec(dbStatement)
 		if err != nil {
 			fmt.Println(err.Error())
-			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()))
+			createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()), &parentSpan)
 			return
 		}
 
 		if createDatabaseConnectionError == "true" {
 			fmt.Println("Connection to database is lost.")
-			createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."))
+			createHttpResponse(&w, http.StatusInternalServerError,
+				[]byte("Connection to database is lost."), &parentSpan)
 			return
 		}
 	}
 
-	createHttpResponse(&w, http.StatusOK, []byte("Success"))
+	createHttpResponse(&w, http.StatusOK, []byte("Success"), &parentSpan)
 }
 
 func createHttpResponse(
 	w *http.ResponseWriter,
 	statusCode int,
 	body []byte,
+	serverSpan *trace.Span,
 ) {
 	(*w).WriteHeader(statusCode)
 	(*w).Write(body)
+
+	attrs := []attribute.KeyValue{
+		semconv.HTTPStatusCode(statusCode),
+	}
+	(*serverSpan).SetAttributes(attrs...)
 }
 
 func getCommonDbSpanAttributes() []attribute.KeyValue {
