@@ -165,8 +165,8 @@ helm upgrade ${donald[name]} \
   --set mysql.port=${mysql[port]} \
   --set mysql.database=${mysql[database]} \
   --set mysql.table=${mysql[table]} \
-  --set features.considerDatabaseSpans="false" \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
+  --set features.considerDatabaseSpans="false" \
   "../helm/${donald[name]}"
 
 # joe
