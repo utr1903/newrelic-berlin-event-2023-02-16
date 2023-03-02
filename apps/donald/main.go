@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	appName               string
-	appPort               string
-	considerDatabaseSpans bool
+	appName                     string
+	appPort                     string
+	considerDatabaseSpans       bool
+	considerPostprocessingSpans bool
 )
 
 func main() {
@@ -37,12 +38,14 @@ func main() {
 	defer db.Close()
 
 	// Serve
-	http.Handle("/api", otelhttp.NewHandler(http.HandlerFunc(handler), "delete"))
+	http.Handle("/api", otelhttp.NewHandler(http.HandlerFunc(handler), "api"))
 	http.ListenAndServe(":"+appPort, nil)
 }
 
 func parseFlags() {
 	appName = os.Getenv("APP_NAME")
 	appPort = os.Getenv("APP_PORT")
+
 	considerDatabaseSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_DATABASE_SPANS"))
+	considerPostprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_POSTPROCESSING_SPANS"))
 }

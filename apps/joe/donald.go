@@ -22,7 +22,7 @@ var (
 
 func performHttpCall(
 	httpMethod string,
-) {
+) error {
 
 	// Get context
 	ctx := context.Background()
@@ -39,7 +39,7 @@ func performHttpCall(
 	)
 	if err != nil {
 		fmt.Println(err.Error())
-		return
+		return err
 	}
 
 	// Add headers
@@ -53,7 +53,7 @@ func performHttpCall(
 	if err != nil {
 		fmt.Println(err.Error())
 		recordClientDuration(ctx, httpMethod, http.StatusInternalServerError, requestStartTime)
-		return
+		return err
 	}
 	defer res.Body.Close()
 
@@ -61,9 +61,12 @@ func performHttpCall(
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println(err.Error())
+		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
+		return err
 	}
 
 	recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
+	return nil
 }
 
 func recordClientDuration(

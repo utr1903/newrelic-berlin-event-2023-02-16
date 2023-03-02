@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
@@ -21,19 +22,32 @@ func handler(
 	defer parentSpan.End()
 
 	// Perform database query
-	if considerDatabaseSpans {
-		err := performQueryWithDbSpan(w, r, &parentSpan)
-		if err != nil {
-			return
-		}
-	} else {
-		err := performQueryWithoutDbSpan(w, r, &parentSpan)
-		if err != nil {
-			return
-		}
+	err := performQuery(w, r, &parentSpan)
+	if err != nil {
+		return
 	}
 
+	performPostprocessing(r, &parentSpan)
 	createHttpResponse(&w, http.StatusOK, []byte("Success"), &parentSpan)
+}
+
+func performQuery(
+	w http.ResponseWriter,
+	r *http.Request,
+	parentSpan *trace.Span,
+) error {
+	if considerDatabaseSpans {
+		err := performQueryWithDbSpan(w, r, parentSpan)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := performQueryWithoutDbSpan(w, r, parentSpan)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func performQueryWithDbSpan(
@@ -43,7 +57,7 @@ func performQueryWithDbSpan(
 ) error {
 
 	// Build query
-	dbOperation, dbStatement, err := createDbQuery(r.Method)
+	dbOperation, dbStatement, err := createDbQuery(r)
 	if err != nil {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
@@ -60,8 +74,8 @@ func performQueryWithDbSpan(
 
 	// Set additional span attributes
 	dbSpanAttrs := getCommonDbSpanAttributes()
-	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
 	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.operation", dbOperation))
+	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
 
 	// Perform query
 	err = executeDbQuery(r.Method, dbStatement)
@@ -74,9 +88,9 @@ func performQueryWithDbSpan(
 		return err
 	}
 
-	// Parse query parameters
-	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
-	if createDatabaseConnectionError == "true" {
+	// Create database connection error
+	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
+	if databaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
 
 		// Add status code
@@ -96,7 +110,7 @@ func performQueryWithoutDbSpan(
 	parentSpan *trace.Span,
 ) error {
 	// Build query
-	_, dbStatement, err := createDbQuery(r.Method)
+	_, dbStatement, err := createDbQuery(r)
 	if err != nil {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"), parentSpan)
 		return err
@@ -110,8 +124,8 @@ func performQueryWithoutDbSpan(
 	}
 
 	// Parse query parameters
-	createDatabaseConnectionError := r.URL.Query().Get("createDatabaseConnectionError")
-	if createDatabaseConnectionError == "true" {
+	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
+	if databaseConnectionError == "true" {
 		fmt.Println("Connection to database is lost.")
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
 		return errors.New("database connection lost")
@@ -120,16 +134,24 @@ func performQueryWithoutDbSpan(
 }
 
 func createDbQuery(
-	httpMethod string,
+	r *http.Request,
 ) (
 	string,
 	string,
 	error,
 ) {
-	switch httpMethod {
+	switch r.Method {
 	case http.MethodGet:
 		dbOperation := "SELECT"
-		dbStatement := dbOperation + " name FROM " + mysqlTable
+		var dbStatement string
+
+		// Create table does not exist error
+		tableDoesNotExistError := r.URL.Query().Get("tableDoesNotExistError")
+		if tableDoesNotExistError == "true" {
+			dbStatement = dbOperation + " name FROM " + "faketable"
+		} else {
+			dbStatement = dbOperation + " name FROM " + mysqlTable
+		}
 		return dbOperation, dbStatement, nil
 	case http.MethodDelete:
 		dbOperation := "DELETE"
@@ -208,5 +230,36 @@ func getCommonDbSpanAttributes() []attribute.KeyValue {
 		attribute.String("net.transport", "IP.TCP"),
 		attribute.String("db.name", mysqlDatabase),
 		attribute.String("db.sql.table", mysqlTable),
+	}
+}
+
+func performPostprocessing(
+	r *http.Request,
+	parentSpan *trace.Span,
+) {
+
+	if considerPostprocessingSpans {
+		_, processingSpan := (*parentSpan).TracerProvider().
+			Tracer(appName).
+			Start(
+				r.Context(),
+				"postprocessing",
+				trace.WithSpanKind(trace.SpanKindInternal),
+			)
+		defer processingSpan.End()
+	}
+
+	produceSchemaNotFoundInCacheWarning(r)
+}
+
+func produceSchemaNotFoundInCacheWarning(
+	r *http.Request,
+) {
+	schemaNotFoundInCacheWarning := r.URL.Query().Get("schemaNotFoundInCacheWarning")
+	if schemaNotFoundInCacheWarning == "true" {
+		fmt.Println("Processing schema not found in cache. Calculating from scratch.")
+		time.Sleep(time.Millisecond * 500)
+	} else {
+		time.Sleep(time.Millisecond * 10)
 	}
 }

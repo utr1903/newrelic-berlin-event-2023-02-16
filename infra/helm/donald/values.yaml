@@ -50,3 +50,5 @@ mysql:
 features:
   # Flag whether the database calls should be tracked with spans
   considerDatabaseSpans: "false"
+  # Flag whether the postprocessing should be tracked with spans
+  considerPostprocessingSpans: "false"

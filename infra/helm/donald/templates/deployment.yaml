@@ -42,6 +42,8 @@ spec:
               value: {{ .Values.otlp.headers }}
             - name: CONSIDER_DATABASE_SPANS
               value: "{{ .Values.features.considerDatabaseSpans }}"
+            - name: CONSIDER_POSTPROCESSING_SPANS
+              value: "{{ .Values.features.considerPostprocessingSpans }}"
           ports:
             - protocol: TCP
               containerPort: {{ .Values.port }}

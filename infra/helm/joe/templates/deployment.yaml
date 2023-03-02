@@ -20,6 +20,8 @@ spec:
           env:
             - name: APP_NAME
               value: {{ .Values.name }}
+            - name: APP_PORT
+              value: "{{ .Values.port }}"
             - name: DONALD_REQUEST_INTERVAL
               value: "{{ .Values.donald.requestInterval }}"
             - name: DONALD_ENDPOINT
@@ -32,6 +34,8 @@ spec:
               value: {{ .Values.otlp.endpoint }}
             - name: OTEL_EXPORTER_OTLP_HEADERS
               value: {{ .Values.otlp.headers }}
+            - name: CONSIDER_PREPROCESSING_SPANS
+              value: "{{ .Values.features.considerPreprocessingSpans }}"
           ports:
             - protocol: TCP
               containerPort: {{ .Values.port }}

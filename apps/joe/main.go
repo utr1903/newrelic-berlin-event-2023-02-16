@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"strconv"
 	"time"
 
@@ -15,10 +14,13 @@ import (
 
 var (
 	appName string
+	appPort string
 
 	donaldRequestInterval string
 	donaldEndpoint        string
 	donaldPort            string
+
+	considerPreprocessingSpans bool
 )
 
 func main() {
@@ -40,17 +42,20 @@ func main() {
 	// Simulate
 	go simulate()
 
-	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer cancel()
-
-	<-ctx.Done()
+	// Serve
+	http.Handle("/api", otelhttp.NewHandler(http.HandlerFunc(handler), "api"))
+	http.ListenAndServe(":"+appPort, nil)
 }
 
 func parseFlags() {
 	appName = os.Getenv("APP_NAME")
+	appPort = os.Getenv("APP_PORT")
+
 	donaldRequestInterval = os.Getenv("DONALD_REQUEST_INTERVAL")
 	donaldEndpoint = os.Getenv("DONALD_ENDPOINT")
 	donaldPort = os.Getenv("DONALD_PORT")
+
+	considerPreprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_PREPROCESSING_SPANS"))
 }
 
 func simulate() {
