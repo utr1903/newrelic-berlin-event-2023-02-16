@@ -86,8 +86,13 @@ func deleteHandler(
 	r *http.Request,
 ) {
 
+	// Get current parentSpan
+	parentSpan := trace.SpanFromContext(r.Context())
+	defer parentSpan.End()
+
 	if r.Method != http.MethodDelete {
 		createHttpResponse(&w, http.StatusMethodNotAllowed, []byte("Method not allowed"))
+		return
 	}
 
 	// Parse query parameters
@@ -96,10 +101,6 @@ func deleteHandler(
 	// Build query
 	dbOperation := "DELETE"
 	dbStatement := dbOperation + " FROM " + mysqlTable
-
-	// Get current parentSpan
-	parentSpan := trace.SpanFromContext(r.Context())
-	defer parentSpan.End()
 
 	// Create db span
 	if considerDatabaseSpans {
@@ -163,10 +164,10 @@ func deleteHandler(
 
 func createHttpResponse(
 	w *http.ResponseWriter,
-	statusCode uint,
+	statusCode int,
 	body []byte,
 ) {
-	(*w).WriteHeader(http.StatusOK)
+	(*w).WriteHeader(statusCode)
 	(*w).Write(body)
 }
 
