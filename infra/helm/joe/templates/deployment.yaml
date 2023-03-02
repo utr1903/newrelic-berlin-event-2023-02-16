@@ -34,6 +34,8 @@ spec:
               value: {{ .Values.otlp.endpoint }}
             - name: OTEL_EXPORTER_OTLP_HEADERS
               value: {{ .Values.otlp.headers }}
+            - name: CONSIDER_PREPROCESSING_SPANS
+              value: "{{ .Values.features.considerPreprocessingSpans }}"
           ports:
             - protocol: TCP
               containerPort: {{ .Values.port }}

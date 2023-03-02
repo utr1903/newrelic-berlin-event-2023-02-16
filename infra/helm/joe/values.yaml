@@ -39,3 +39,8 @@ donald:
   endpoint: "donald.otel.svc.cluster.local"
   # Port of HTTP server
   port: "8080"
+
+# Feature flags
+features:
+  # Flag whether the preprocessing should be tracked with spans
+  considerPreprocessingSpans: "false"

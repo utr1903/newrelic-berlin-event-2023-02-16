@@ -187,4 +187,5 @@ helm upgrade ${joe[name]} \
   --set donald.endpoint="${donald[name]}.${donald[namespace]}.svc.cluster.local" \
   --set donald.port="${donald[port]}" \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
+  --set features.considerPreprocessingSpans="true" \
   "../helm/${joe[name]}"
