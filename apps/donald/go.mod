@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/go-sql-driver/mysql v1.7.0
+	github.com/sirupsen/logrus v1.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
 	go.opentelemetry.io/otel v1.13.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.36.0
@@ -21,7 +22,6 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
-	github.com/sirupsen/logrus v1.9.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.13.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.36.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.13.0 // indirect

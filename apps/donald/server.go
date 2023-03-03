@@ -22,6 +22,8 @@ func handler(
 	parentSpan := trace.SpanFromContext(r.Context())
 	defer parentSpan.End()
 
+	log(logrus.InfoLevel, r.Context(), getUser(r), "Handler is triggered")
+
 	// Perform database query
 	err := performQuery(w, r, &parentSpan)
 	if err != nil {
@@ -143,10 +145,14 @@ func createDbQuery(
 	string,
 	error,
 ) {
+	log(logrus.InfoLevel, r.Context(), getUser(r), "Building query...")
+
+	var dbOperation string
+	var dbStatement string
+
 	switch r.Method {
 	case http.MethodGet:
-		dbOperation := "SELECT"
-		var dbStatement string
+		dbOperation = "SELECT"
 
 		// Create table does not exist error
 		tableDoesNotExistError := r.URL.Query().Get("tableDoesNotExistError")
@@ -157,12 +163,15 @@ func createDbQuery(
 		}
 		return dbOperation, dbStatement, nil
 	case http.MethodDelete:
-		dbOperation := "DELETE"
-		dbStatement := dbOperation + " FROM " + mysqlTable
-		return dbOperation, dbStatement, nil
+		dbOperation = "DELETE"
+		dbStatement = dbOperation + " FROM " + mysqlTable
 	default:
+		log(logrus.ErrorLevel, r.Context(), getUser(r), "Method is not allowed.")
 		return "", "", errors.New("method not allowed")
 	}
+
+	log(logrus.InfoLevel, r.Context(), getUser(r), "Query is built.")
+	return dbOperation, dbStatement, nil
 }
 
 func executeDbQuery(
@@ -170,6 +179,8 @@ func executeDbQuery(
 	r *http.Request,
 	dbStatement string,
 ) error {
+
+	log(logrus.InfoLevel, ctx, getUser(r), "Executing query...")
 
 	user := getUser(r)
 	switch r.Method {
@@ -206,8 +217,11 @@ func executeDbQuery(
 			return err
 		}
 	default:
+		log(logrus.ErrorLevel, ctx, getUser(r), "Method is not allowed.")
 		return errors.New("method not allowed")
 	}
+
+	log(logrus.InfoLevel, ctx, getUser(r), "Query is executed.")
 	return nil
 }
 
@@ -263,6 +277,7 @@ func produceSchemaNotFoundInCacheWarning(
 	ctx context.Context,
 	r *http.Request,
 ) {
+	log(logrus.InfoLevel, ctx, getUser(r), "Postprocessing...")
 	schemaNotFoundInCacheWarning := r.URL.Query().Get("schemaNotFoundInCacheWarning")
 	if schemaNotFoundInCacheWarning == "true" {
 		user := getUser(r)
@@ -271,6 +286,7 @@ func produceSchemaNotFoundInCacheWarning(
 	} else {
 		time.Sleep(time.Millisecond * 10)
 	}
+	log(logrus.InfoLevel, r.Context(), getUser(r), "Postprocessing is complete.")
 }
 
 func getUser(

@@ -107,7 +107,11 @@ func simulate() {
 			time.Sleep(time.Duration(interval) * time.Millisecond)
 
 			// List
-			performHttpCall(http.MethodGet, users[randomizer.Intn(len(users))])
+			performHttpCall(
+				http.MethodGet,
+				users[randomizer.Intn(len(users))],
+				map[string]string{},
+			)
 		}
 	}()
 
@@ -119,7 +123,11 @@ func simulate() {
 			time.Sleep(4 * time.Duration(interval) * time.Millisecond)
 
 			// Delete
-			performHttpCall(http.MethodDelete, users[randomizer.Intn(len(users))])
+			performHttpCall(
+				http.MethodDelete,
+				users[randomizer.Intn(len(users))],
+				map[string]string{},
+			)
 		}
 	}()
 }
