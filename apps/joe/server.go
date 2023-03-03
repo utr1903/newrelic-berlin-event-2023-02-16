@@ -32,8 +32,13 @@ func handler(
 		return
 	}
 
+	reqParams := map[string]string{}
+	for k, v := range r.URL.Query() {
+		reqParams[k] = v[0]
+	}
+
 	// Perform request to Donald service
-	err = performRequestToDonald(w, r, &parentSpan, user)
+	err = performRequestToDonald(r, user, reqParams)
 	if err != nil {
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Fail"), &parentSpan)
 		return
@@ -43,12 +48,11 @@ func handler(
 }
 
 func performRequestToDonald(
-	w http.ResponseWriter,
 	r *http.Request,
-	parentSpan *trace.Span,
 	user string,
+	reqParams map[string]string,
 ) error {
-	return performHttpCall(r.Method, user)
+	return performHttpCall(r.Method, user, reqParams)
 }
 
 func performPreprocessing(

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -23,6 +24,7 @@ var (
 func performHttpCall(
 	httpMethod string,
 	user string,
+	reqParams map[string]string,
 ) error {
 
 	// Get context
@@ -47,6 +49,15 @@ func performHttpCall(
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("X-User-ID", user)
 
+	// Add request params
+	qps := req.URL.Query()
+	for k, v := range reqParams {
+		qps.Add(k, v)
+	}
+	if len(qps) > 0 {
+		req.URL.RawQuery = qps.Encode()
+	}
+
 	// Start timer
 	requestStartTime := time.Now()
 
@@ -60,11 +71,18 @@ func performHttpCall(
 	defer res.Body.Close()
 
 	// Read HTTP response
-	_, err = ioutil.ReadAll(res.Body)
+	resBody, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		log(logrus.ErrorLevel, ctx, user, err.Error())
 		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
 		return err
+	}
+
+	// Check status code
+	if res.StatusCode != http.StatusOK {
+		log(logrus.ErrorLevel, ctx, user, string(resBody))
+		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
+		return errors.New("call to donald returned not ok status")
 	}
 
 	recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
