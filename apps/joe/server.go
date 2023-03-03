@@ -20,14 +20,20 @@ func handler(
 	parentSpan := trace.SpanFromContext(r.Context())
 	defer parentSpan.End()
 
-	err := performPreprocessing(r, &parentSpan)
+	// Get caller user
+	user := r.Header.Get("X-User-ID")
+	if user == "" {
+		user = "_anonymous_"
+	}
+
+	err := performPreprocessing(r, &parentSpan, user)
 	if err != nil {
 		createHttpResponse(&w, http.StatusBadRequest, []byte("Fail"), &parentSpan)
 		return
 	}
 
 	// Perform request to Donald service
-	err = performRequestToDonald(w, r, &parentSpan)
+	err = performRequestToDonald(w, r, &parentSpan, user)
 	if err != nil {
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Fail"), &parentSpan)
 		return
@@ -40,17 +46,19 @@ func performRequestToDonald(
 	w http.ResponseWriter,
 	r *http.Request,
 	parentSpan *trace.Span,
+	user string,
 ) error {
-	return performHttpCall(r.Method)
+	return performHttpCall(r.Method, user)
 }
 
 func performPreprocessing(
 	r *http.Request,
 	parentSpan *trace.Span,
+	user string,
 ) error {
 
 	if considerPreprocessingSpans {
-		_, processingSpan := (*parentSpan).TracerProvider().
+		ctx, processingSpan := (*parentSpan).TracerProvider().
 			Tracer(appName).
 			Start(
 				r.Context(),
@@ -59,8 +67,12 @@ func performPreprocessing(
 			)
 		defer processingSpan.End()
 
-		msg, err := produceException(r)
+		err := produceException(r)
 		if err != nil {
+
+			msg := "Provided data format is invalid and cannot be processed"
+			log(logrus.ErrorLevel, ctx, user, msg)
+
 			stackSlice := make([]byte, 512)
 			s := runtime.Stack(stackSlice, false)
 
@@ -75,23 +87,18 @@ func performPreprocessing(
 		return nil
 	}
 
-	_, err := produceException(r)
+	err := produceException(r)
 	return err
 }
 
 func produceException(
 	r *http.Request,
-) (
-	string,
-	error,
-) {
+) error {
 	preprocessingException := r.URL.Query().Get("preprocessingException")
 	if preprocessingException == "true" {
-		msg := "Provided data format is invalid and cannot be processed"
-		logrus.WithFields(logrus.Fields{}).Error(msg)
-		return msg, errors.New("preprocessing failed")
+		return errors.New("preprocessing failed")
 	}
-	return "", nil
+	return nil
 }
 
 func createHttpResponse(

@@ -174,6 +174,7 @@ helm upgrade ${donald[name]} \
   --set features.considerDatabaseSpans="true" \
   --set features.considerPostprocessingSpans="true" \
   --set logging.level="WARN" \
+  --set logging.withContext="true" \
   "../helm/${donald[name]}"
 
 # joe
@@ -195,4 +196,5 @@ helm upgrade ${joe[name]} \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
   --set features.considerPreprocessingSpans="true" \
   --set logging.level="WARN" \
+  --set logging.withContext="true" \
   "../helm/${joe[name]}"

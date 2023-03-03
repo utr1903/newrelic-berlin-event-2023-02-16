@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -16,13 +17,22 @@ var (
 	appName string
 	appPort string
 
-	logLevel string
-
 	donaldRequestInterval string
 	donaldEndpoint        string
 	donaldPort            string
 
 	considerPreprocessingSpans bool
+
+	logLevel       string
+	logWithContext bool
+
+	users = []string{
+		"elon",
+		"jeff",
+		"warren",
+		"bill",
+		"mark",
+	}
 )
 
 func main() {
@@ -56,34 +66,21 @@ func parseFlags() {
 	appName = os.Getenv("APP_NAME")
 	appPort = os.Getenv("APP_PORT")
 
-	logLevel = os.Getenv("LOG_LEVEL")
-
 	donaldRequestInterval = os.Getenv("DONALD_REQUEST_INTERVAL")
 	donaldEndpoint = os.Getenv("DONALD_ENDPOINT")
 	donaldPort = os.Getenv("DONALD_PORT")
 
 	considerPreprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_PREPROCESSING_SPANS"))
-}
 
-func initLogger() {
-
-	// Set log level
-	switch logLevel {
-	case "WARN":
-		logrus.SetLevel(logrus.WarnLevel)
-	default:
-		logrus.SetLevel(logrus.InfoLevel)
-	}
-
-	// Set formatter
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logLevel = os.Getenv("LOG_LEVEL")
+	logWithContext, _ = strconv.ParseBool(os.Getenv("LOG_WITH_CONTEXT"))
 }
 
 func simulate() {
 
 	interval, err := strconv.ParseInt(donaldRequestInterval, 10, 64)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{}).Error(err.Error())
+		logrus.Error(err.Error())
 	}
 
 	httpClient = &http.Client{
@@ -95,9 +92,12 @@ func simulate() {
 		Meter(appName).
 		Float64Histogram("http.client.duration")
 	if err != nil {
-		logrus.WithFields(logrus.Fields{}).Error(err.Error())
+		logrus.Error(err.Error())
 		return
 	}
+
+	// Initialize random number generator
+	randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// LIST simulator
 	go func() {
@@ -107,7 +107,7 @@ func simulate() {
 			time.Sleep(time.Duration(interval) * time.Millisecond)
 
 			// List
-			performHttpCall(http.MethodGet)
+			performHttpCall(http.MethodGet, users[randomizer.Intn(len(users))])
 		}
 	}()
 
@@ -119,7 +119,7 @@ func simulate() {
 			time.Sleep(4 * time.Duration(interval) * time.Millisecond)
 
 			// Delete
-			performHttpCall(http.MethodDelete)
+			performHttpCall(http.MethodDelete, users[randomizer.Intn(len(users))])
 		}
 	}()
 }

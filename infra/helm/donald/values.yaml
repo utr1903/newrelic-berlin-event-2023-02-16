@@ -52,3 +52,10 @@ features:
   considerDatabaseSpans: "false"
   # Flag whether the postprocessing should be tracked with spans
   considerPostprocessingSpans: "false"
+
+# Logging parameters
+logging:
+  # Log level
+  level: "INFO"
+  # Flag whether logs should put in context with traces
+  withContext: "false"

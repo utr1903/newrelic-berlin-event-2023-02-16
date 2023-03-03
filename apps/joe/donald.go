@@ -22,6 +22,7 @@ var (
 
 func performHttpCall(
 	httpMethod string,
+	user string,
 ) error {
 
 	// Get context
@@ -38,12 +39,13 @@ func performHttpCall(
 		nil,
 	)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{}).Error(err.Error())
+		log(logrus.ErrorLevel, ctx, user, err.Error())
 		return err
 	}
 
 	// Add headers
 	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("X-User-ID", user)
 
 	// Start timer
 	requestStartTime := time.Now()
@@ -51,7 +53,7 @@ func performHttpCall(
 	// Perform HTTP request
 	res, err := httpClient.Do(req)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{}).Error(err.Error())
+		log(logrus.ErrorLevel, ctx, user, err.Error())
 		recordClientDuration(ctx, httpMethod, http.StatusInternalServerError, requestStartTime)
 		return err
 	}
@@ -60,7 +62,7 @@ func performHttpCall(
 	// Read HTTP response
 	_, err = ioutil.ReadAll(res.Body)
 	if err != nil {
-		logrus.WithFields(logrus.Fields{}).Error(err.Error())
+		log(logrus.ErrorLevel, ctx, user, err.Error())
 		recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
 		return err
 	}
