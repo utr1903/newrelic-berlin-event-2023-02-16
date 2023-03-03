@@ -35,7 +35,7 @@ func createDatabaseConnection() *sql.DB {
 	logrus.Info("Database is created successfully!")
 
 	// Use the database
-	_, err = db.Exec("USE " + mysqlDatabase)
+	db, err = sql.Open("mysql", datasourceName+mysqlDatabase)
 	if err != nil {
 		panic(err)
 	}
