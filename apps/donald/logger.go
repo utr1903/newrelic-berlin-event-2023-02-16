@@ -33,8 +33,8 @@ func log(
 			"service.name": appName,
 			"trace.id":     span.SpanContext().TraceID().String(),
 			"span.id":      span.SpanContext().SpanID().String(),
-		}).Error("user:" + user + "|" + msg)
+		}).Log(lvl, "user:"+user+"|message:"+msg)
 	} else {
-		logrus.Error("user:" + user + "|" + msg)
+		logrus.WithFields(logrus.Fields{}).Log(lvl, "user:"+user+"|message:"+msg)
 	}
 }
