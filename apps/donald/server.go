@@ -1,12 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel/attribute"
 	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
 	"go.opentelemetry.io/otel/trace"
@@ -63,7 +64,7 @@ func performQueryWithDbSpan(
 		return err
 	}
 
-	_, dbSpan := (*parentSpan).TracerProvider().
+	ctx, dbSpan := (*parentSpan).TracerProvider().
 		Tracer(appName).
 		Start(
 			r.Context(),
@@ -78,7 +79,7 @@ func performQueryWithDbSpan(
 	dbSpanAttrs = append(dbSpanAttrs, attribute.String("db.statement", dbStatement))
 
 	// Perform query
-	err = executeDbQuery(r.Method, dbStatement)
+	err = executeDbQuery(ctx, r, dbStatement)
 	if err != nil {
 		// Add status code
 		dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
@@ -91,13 +92,14 @@ func performQueryWithDbSpan(
 	// Create database connection error
 	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
 	if databaseConnectionError == "true" {
-		fmt.Println("Connection to database is lost.")
+		msg := "Connection to database is lost."
+		log(logrus.ErrorLevel, ctx, getUser(r), msg)
 
 		// Add status code
 		dbSpanAttrs = append(dbSpanAttrs, attribute.String("otel.status_code", "ERROR"))
 		dbSpan.SetAttributes(dbSpanAttrs...)
 
-		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
+		createHttpResponse(&w, http.StatusInternalServerError, []byte(msg), parentSpan)
 		return errors.New("database connection lost")
 	}
 	dbSpan.SetAttributes(dbSpanAttrs...)
@@ -117,7 +119,7 @@ func performQueryWithoutDbSpan(
 	}
 
 	// Perform query
-	err = executeDbQuery(r.Method, dbStatement)
+	err = executeDbQuery(r.Context(), r, dbStatement)
 	if err != nil {
 		createHttpResponse(&w, http.StatusInternalServerError, []byte(err.Error()), parentSpan)
 		return err
@@ -126,8 +128,9 @@ func performQueryWithoutDbSpan(
 	// Parse query parameters
 	databaseConnectionError := r.URL.Query().Get("databaseConnectionError")
 	if databaseConnectionError == "true" {
-		fmt.Println("Connection to database is lost.")
-		createHttpResponse(&w, http.StatusInternalServerError, []byte("Connection to database is lost."), parentSpan)
+		msg := "Connection to database is lost."
+		log(logrus.ErrorLevel, r.Context(), getUser(r), msg)
+		createHttpResponse(&w, http.StatusInternalServerError, []byte(msg), parentSpan)
 		return errors.New("database connection lost")
 	}
 	return nil
@@ -163,16 +166,18 @@ func createDbQuery(
 }
 
 func executeDbQuery(
-	httpMethod string,
+	ctx context.Context,
+	r *http.Request,
 	dbStatement string,
 ) error {
 
-	switch httpMethod {
+	user := getUser(r)
+	switch r.Method {
 	case http.MethodGet:
 		// Perform a query
 		rows, err := db.Query(dbStatement)
 		if err != nil {
-			fmt.Println(err)
+			log(logrus.ErrorLevel, ctx, user, err.Error())
 			return err
 		}
 		defer rows.Close()
@@ -183,7 +188,7 @@ func executeDbQuery(
 			var name string
 			err = rows.Scan(&name)
 			if err != nil {
-				fmt.Println(err)
+				log(logrus.ErrorLevel, ctx, user, err.Error())
 				return err
 			}
 			names = append(names, name)
@@ -191,13 +196,13 @@ func executeDbQuery(
 
 		_, err = json.Marshal(names)
 		if err != nil {
-			fmt.Println(err)
+			log(logrus.ErrorLevel, ctx, user, err.Error())
 			return err
 		}
 	case http.MethodDelete:
 		_, err := db.Exec(dbStatement)
 		if err != nil {
-			fmt.Println(err)
+			log(logrus.ErrorLevel, ctx, user, err.Error())
 			return err
 		}
 	default:
@@ -239,7 +244,7 @@ func performPostprocessing(
 ) {
 
 	if considerPostprocessingSpans {
-		_, processingSpan := (*parentSpan).TracerProvider().
+		ctx, processingSpan := (*parentSpan).TracerProvider().
 			Tracer(appName).
 			Start(
 				r.Context(),
@@ -247,19 +252,34 @@ func performPostprocessing(
 				trace.WithSpanKind(trace.SpanKindInternal),
 			)
 		defer processingSpan.End()
-	}
 
-	produceSchemaNotFoundInCacheWarning(r)
+		produceSchemaNotFoundInCacheWarning(ctx, r)
+	} else {
+		produceSchemaNotFoundInCacheWarning(r.Context(), r)
+	}
 }
 
 func produceSchemaNotFoundInCacheWarning(
+	ctx context.Context,
 	r *http.Request,
 ) {
 	schemaNotFoundInCacheWarning := r.URL.Query().Get("schemaNotFoundInCacheWarning")
 	if schemaNotFoundInCacheWarning == "true" {
-		fmt.Println("Processing schema not found in cache. Calculating from scratch.")
+		user := getUser(r)
+		log(logrus.ErrorLevel, ctx, user, "Processing schema not found in cache. Calculating from scratch.")
 		time.Sleep(time.Millisecond * 500)
 	} else {
 		time.Sleep(time.Millisecond * 10)
 	}
+}
+
+func getUser(
+	r *http.Request,
+) string {
+
+	user := r.Header.Get("X-User-ID")
+	if user == "" {
+		user = "_anonymous_"
+	}
+	return user
 }

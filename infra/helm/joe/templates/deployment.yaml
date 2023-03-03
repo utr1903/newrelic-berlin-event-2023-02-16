@@ -32,10 +32,12 @@ spec:
               value: {{ .Values.name }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: {{ .Values.otlp.endpoint }}
-            - name: OTEL_EXPORTER_OTLP_HEADERS
-              value: {{ .Values.otlp.headers }}
             - name: CONSIDER_PREPROCESSING_SPANS
               value: "{{ .Values.features.considerPreprocessingSpans }}"
+            - name: LOG_LEVEL
+              value: {{ .Values.logging.level }}
+            - name: LOG_WITH_CONTEXT
+              value: "{{ .Values.logging.withContext }}"
           ports:
             - protocol: TCP
               containerPort: {{ .Values.port }}

@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel/metric/global"
 )
@@ -21,12 +22,26 @@ var (
 	donaldPort            string
 
 	considerPreprocessingSpans bool
+
+	logLevel       string
+	logWithContext bool
+
+	users = []string{
+		"elon",
+		"jeff",
+		"warren",
+		"bill",
+		"mark",
+	}
 )
 
 func main() {
 
 	// Parse arguments and feature flags
 	parseFlags()
+
+	// Init logger
+	initLogger()
 
 	// Get context
 	ctx := context.Background()
@@ -56,14 +71,16 @@ func parseFlags() {
 	donaldPort = os.Getenv("DONALD_PORT")
 
 	considerPreprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_PREPROCESSING_SPANS"))
+
+	logLevel = os.Getenv("LOG_LEVEL")
+	logWithContext, _ = strconv.ParseBool(os.Getenv("LOG_WITH_CONTEXT"))
 }
 
 func simulate() {
 
 	interval, err := strconv.ParseInt(donaldRequestInterval, 10, 64)
 	if err != nil {
-		fmt.Println(err.Error())
-		return
+		logrus.Error(err.Error())
 	}
 
 	httpClient = &http.Client{
@@ -75,9 +92,12 @@ func simulate() {
 		Meter(appName).
 		Float64Histogram("http.client.duration")
 	if err != nil {
-		fmt.Println(err.Error())
+		logrus.Error(err.Error())
 		return
 	}
+
+	// Initialize random number generator
+	randomizer := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	// LIST simulator
 	go func() {
@@ -87,7 +107,7 @@ func simulate() {
 			time.Sleep(time.Duration(interval) * time.Millisecond)
 
 			// List
-			performHttpCall(http.MethodGet)
+			performHttpCall(http.MethodGet, users[randomizer.Intn(len(users))])
 		}
 	}()
 
@@ -99,7 +119,7 @@ func simulate() {
 			time.Sleep(4 * time.Duration(interval) * time.Millisecond)
 
 			// Delete
-			performHttpCall(http.MethodDelete)
+			performHttpCall(http.MethodDelete, users[randomizer.Intn(len(users))])
 		}
 	}()
 }

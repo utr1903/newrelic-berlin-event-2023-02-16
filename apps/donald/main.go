@@ -11,16 +11,23 @@ import (
 )
 
 var (
-	appName                     string
-	appPort                     string
+	appName string
+	appPort string
+
 	considerDatabaseSpans       bool
 	considerPostprocessingSpans bool
+
+	logLevel       string
+	logWithContext bool
 )
 
 func main() {
 
 	// Parse arguments and feature flags
 	parseFlags()
+
+	// Init logger
+	initLogger()
 
 	// Get context
 	ctx := context.Background()
@@ -48,4 +55,7 @@ func parseFlags() {
 
 	considerDatabaseSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_DATABASE_SPANS"))
 	considerPostprocessingSpans, _ = strconv.ParseBool(os.Getenv("CONSIDER_POSTPROCESSING_SPANS"))
+
+	logLevel = os.Getenv("LOG_LEVEL")
+	logWithContext, _ = strconv.ParseBool(os.Getenv("LOG_WITH_CONTEXT"))
 }

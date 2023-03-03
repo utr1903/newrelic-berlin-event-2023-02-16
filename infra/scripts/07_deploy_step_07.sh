@@ -119,10 +119,14 @@ helm upgrade ${otelcollector[name]} \
   --namespace ${otelcollector[namespace]} \
   --set mode=${otelcollector[mode]} \
   --set presets.kubernetesAttributes.enabled=true \
+  --set presets.logsCollection.enabled=true \
   --set serviceAccount.create=true \
   --set config.receivers.jaeger=null \
   --set config.receivers.prometheus=null \
   --set config.receivers.zipkin=null \
+  --set config.receivers.filelog.include[0]="/var/log/pods/${donald[namespace]}_${donald[name]}*/${donald[name]}/*.log" \
+  --set config.receivers.filelog.include[1]="/var/log/pods/${joe[namespace]}_${joe[name]}*/${joe[name]}/*.log" \
+  --set config.receivers.filelog.start_at="end" \
   --set config.processors.cumulativetodelta.include.match_type="strict" \
   --set config.processors.cumulativetodelta.include.metrics[0]="http.server.duration" \
   --set config.processors.cumulativetodelta.include.metrics[1]="http.client.duration" \
@@ -143,7 +147,8 @@ helm upgrade ${otelcollector[name]} \
   --set config.service.pipelines.metrics.processors[1]="memory_limiter" \
   --set config.service.pipelines.metrics.processors[2]="cumulativetodelta" \
   --set config.service.pipelines.metrics.exporters[0]="otlp" \
-  --set config.service.pipelines.logs=null \
+  --set config.service.pipelines.logs.processors[0]="batch" \
+  --set config.service.pipelines.logs.exporters[0]="otlp" \
   "open-telemetry/opentelemetry-collector"
 
 # donald
@@ -168,6 +173,8 @@ helm upgrade ${donald[name]} \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
   --set features.considerDatabaseSpans="true" \
   --set features.considerPostprocessingSpans="true" \
+  --set logging.level="WARN" \
+  --set logging.withContext="true" \
   "../helm/${donald[name]}"
 
 # joe
@@ -188,4 +195,6 @@ helm upgrade ${joe[name]} \
   --set donald.port="${donald[port]}" \
   --set otlp.endpoint="http://${otelcollector[name]}-opentelemetry-collector.${otelcollector[namespace]}.svc.cluster.local:4317" \
   --set features.considerPreprocessingSpans="true" \
+  --set logging.level="WARN" \
+  --set logging.withContext="true" \
   "../helm/${joe[name]}"

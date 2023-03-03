@@ -3,6 +3,7 @@ module github.com/utr1903/opentelemetry-playground/golang/apps/simulator
 go 1.18
 
 require (
+	github.com/sirupsen/logrus v1.9.0
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.39.0
 	go.opentelemetry.io/otel v1.13.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.36.0

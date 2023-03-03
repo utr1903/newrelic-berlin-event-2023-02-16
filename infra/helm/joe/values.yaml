@@ -44,3 +44,10 @@ donald:
 features:
   # Flag whether the preprocessing should be tracked with spans
   considerPreprocessingSpans: "false"
+
+# Logging parameters
+logging:
+  # Log level
+  level: "INFO"
+  # Flag whether logs should put in context with traces
+  withContext: "false"

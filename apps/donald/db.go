@@ -2,8 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
+
+	"github.com/sirupsen/logrus"
 )
 
 var (
@@ -31,7 +32,7 @@ func createDatabaseConnection() *sql.DB {
 		panic(err)
 	}
 
-	fmt.Println("Database is created successfully!")
+	logrus.Info("Database is created successfully!")
 
 	// Use the database
 	_, err = db.Exec("USE " + mysqlDatabase)
@@ -45,6 +46,7 @@ func createDatabaseConnection() *sql.DB {
 		panic(err)
 	}
 
-	fmt.Println("Table is created successfully!")
+	logrus.Info("Table is created successfully!")
+
 	return db
 }
