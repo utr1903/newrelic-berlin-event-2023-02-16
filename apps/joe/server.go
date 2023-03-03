@@ -26,19 +26,16 @@ func handler(
 		user = "_anonymous_"
 	}
 
+	log(logrus.InfoLevel, r.Context(), user, "Handler is triggered")
+
 	err := performPreprocessing(r, &parentSpan, user)
 	if err != nil {
 		createHttpResponse(&w, http.StatusBadRequest, []byte("Fail"), &parentSpan)
 		return
 	}
 
-	reqParams := map[string]string{}
-	for k, v := range r.URL.Query() {
-		reqParams[k] = v[0]
-	}
-
 	// Perform request to Donald service
-	err = performRequestToDonald(r, user, reqParams)
+	err = performRequestToDonald(r, user)
 	if err != nil {
 		createHttpResponse(&w, http.StatusInternalServerError, []byte("Fail"), &parentSpan)
 		return
@@ -50,8 +47,13 @@ func handler(
 func performRequestToDonald(
 	r *http.Request,
 	user string,
-	reqParams map[string]string,
 ) error {
+	// Add request parameters
+	reqParams := map[string]string{}
+	for k, v := range r.URL.Query() {
+		reqParams[k] = v[0]
+	}
+	// Make the call
 	return performHttpCall(r.Method, user, reqParams)
 }
 
@@ -61,6 +63,7 @@ func performPreprocessing(
 	user string,
 ) error {
 
+	log(logrus.InfoLevel, r.Context(), user, "Preprocessing...")
 	if considerPreprocessingSpans {
 		ctx, processingSpan := (*parentSpan).TracerProvider().
 			Tracer(appName).
@@ -74,7 +77,7 @@ func performPreprocessing(
 		err := produceException(r)
 		if err != nil {
 
-			msg := "Provided data format is invalid and cannot be processed"
+			msg := "Provided data format is invalid and cannot be processed."
 			log(logrus.ErrorLevel, ctx, user, msg)
 
 			stackSlice := make([]byte, 512)
@@ -88,6 +91,7 @@ func performPreprocessing(
 			processingSpan.SetAttributes(attrs...)
 			return err
 		}
+		log(logrus.InfoLevel, r.Context(), user, "Preprocessing is completed.")
 		return nil
 	}
 

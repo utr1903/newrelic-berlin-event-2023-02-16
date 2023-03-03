@@ -30,6 +30,8 @@ func performHttpCall(
 	// Get context
 	ctx := context.Background()
 
+	log(logrus.InfoLevel, ctx, user, "Preparing HTTP call...")
+
 	// Create request propagation
 	carrier := propagation.HeaderCarrier(http.Header{})
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
@@ -56,12 +58,15 @@ func performHttpCall(
 	}
 	if len(qps) > 0 {
 		req.URL.RawQuery = qps.Encode()
+		log(logrus.InfoLevel, ctx, user, "Request params->"+req.URL.RawQuery)
 	}
+	log(logrus.InfoLevel, ctx, user, "HTTP call is prepared.")
 
 	// Start timer
 	requestStartTime := time.Now()
 
 	// Perform HTTP request
+	log(logrus.InfoLevel, ctx, user, "Performing HTTP call")
 	res, err := httpClient.Do(req)
 	if err != nil {
 		log(logrus.ErrorLevel, ctx, user, err.Error())
@@ -86,6 +91,7 @@ func performHttpCall(
 	}
 
 	recordClientDuration(ctx, httpMethod, res.StatusCode, requestStartTime)
+	log(logrus.InfoLevel, ctx, user, "HTTP call is performed successfully.")
 	return nil
 }
 
