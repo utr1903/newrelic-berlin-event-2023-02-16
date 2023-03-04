@@ -22,13 +22,11 @@ var (
 )
 
 func performHttpCall(
+	ctx context.Context,
 	httpMethod string,
 	user string,
 	reqParams map[string]string,
 ) error {
-
-	// Get context
-	ctx := context.Background()
 
 	log(logrus.InfoLevel, ctx, user, "Preparing HTTP call...")
 

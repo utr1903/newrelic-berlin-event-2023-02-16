@@ -108,6 +108,7 @@ func simulate() {
 
 			// List
 			performHttpCall(
+				context.Background(),
 				http.MethodGet,
 				users[randomizer.Intn(len(users))],
 				map[string]string{},
@@ -124,6 +125,7 @@ func simulate() {
 
 			// Delete
 			performHttpCall(
+				context.Background(),
 				http.MethodDelete,
 				users[randomizer.Intn(len(users))],
 				map[string]string{},
