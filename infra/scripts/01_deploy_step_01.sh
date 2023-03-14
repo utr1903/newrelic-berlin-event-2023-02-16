@@ -58,7 +58,7 @@ declare -A donald
 donald["name"]="donald"
 donald["imageName"]="${repoName}:${donald[name]}-${platform}"
 donald["namespace"]="otel"
-donald["replicas"]=1
+donald["replicas"]=2
 donald["port"]=8080
 
 # joe
@@ -66,7 +66,7 @@ declare -A joe
 joe["name"]="joe"
 joe["imageName"]="${repoName}:${joe[name]}-${platform}"
 joe["namespace"]="otel"
-joe["replicas"]=1
+joe["replicas"]=3
 joe["port"]=8080
 joe["interval"]=2000
 
