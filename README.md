@@ -8,11 +8,11 @@ This workshop is dedicated to demonstrate:
 
 ## Scenario
 
-You are the mighty support engineers. You are assigned to monitor some applications
+You are the mighty support engineers. You are assigned to monitor some applications which:
 
-- which are not well instrumented
-- where you have no direct access to
-- which keep making end users pissed off because of random failures
+- are not well instrumented
+- you have no direct access to
+- keep making end users pissed off because of random failures
 
 The only tool you have is New Relic where the telemetry data are being sent to. Your mission is to put an end to this misery...
 
@@ -38,18 +38,18 @@ Answers 1:
    - `FROM Metric SELECT uniques(metricName) WHERE service.name = 'joe' SINCE 5 minutes ago`
      - `http.client.duration`
    - `FROM Metric SELECT uniques(metricName) WHERE service.name = 'donald' SINCE 5 minutes ago`
-      - `http.server.duration`
-      - `http.server.request_content_length`
-      - `http.server.response_content_length`
+     - `http.server.duration`
+     - `http.server.request_content_length`
+     - `http.server.response_content_length`
 3. Depending on the metrics,
-   - joe -> `FROM Metric SELECT * WHERE service.name = 'joe' AND http.client.duration IS NOT NULL    SINCE 5 minutes ago`
+   - joe -> `FROM Metric SELECT * WHERE service.name = 'joe' AND http.client.duration IS NOT NULL SINCE 5 minutes ago`
      - is being instrumented by Open Telemetry `instrumentation.provider = opentelemetry`
      - is a Golang application `telemetry.sdk.language = go`
      - making external HTTP calls
        - with methods `http.method = GET & DELETE`
        - to `net.peer.name = donald.otel.svc.cluster.local`
        - on port `net.peer.port = 8080`
-   - donald -> `FROM Metric SELECT * WHERE service.name = 'donald' AND http.server.duration IS NOT    NULL SINCE 5 minutes ago`
+   - donald -> `FROM Metric SELECT * WHERE service.name = 'donald' AND http.server.duration IS NOT NULL SINCE 5 minutes ago`
      - is being instrumented by Open Telemetry `instrumentation.provider = opentelemetry`
      - is a Golang application `telemetry.sdk.language = go`
      - is an HTTP server
@@ -250,8 +250,8 @@ kubectl port-forward -n otel svc/joe 8080
 Smash:
 
 - `curl -X GET "http://localhost:8080/api?databaseConnectionError=true"`
-- `curl -X DELETE "http://localhost:8080/api?tableDoesNotExistError=true"`
-- `curl -X GET "http://localhost:8080/api?preprocessingException=true"`
+- `curl -X GET "http://localhost:8080/api?tableDoesNotExistError=true"`
+- `curl -X DELETE "http://localhost:8080/api?preprocessingException=true"`
 - `curl -X GET "http://localhost:8080/api?schemaNotFoundInCacheWarning=true"`
 
 Answers to questions 2 from step 4:
@@ -282,7 +282,7 @@ Answers 2:
      - The timestamp of the trace with errors and the timestamp of the log
      - The instance where the traces and logs are generated
    - Theoretically, those would be enough... For this dummy platform...
-     - In a very complicated environment with tons of microservices, it would be _searching for needle haystack_
+     - In a very complicated environment with tons of microservices, it would be _searching for needle in a haystack_
 2. The `INFO` logs seem to give you a nice overview of individual steps happening in each call. But even as you were looking for answers, you haven't started with them, ain't ya?
    - So for this environment, they seem to be mostly useless and disturbing
 
@@ -298,11 +298,19 @@ Answers to questions 1 from step 6:
    - ![`step07_error_trace_1.png`](/docs/step07_error_trace_1.png)
    - ![`step07_error_trace_2.png`](/docs/step07_error_trace_2.png)
    - You can also programmatically obtain them easily:
-     - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND duration.ms > (FROM Span SELECT percentile(duration.ms, 99.9) WHERE service.name = 'donald')) SINCE 10    minutes ago`
+     - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND duration.ms > (FROM Span SELECT percentile(duration.ms, 99.9) WHERE service.name = 'donald')) SINCE 10 minutes ago`
      - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND otel.status_code = 'ERROR')) SINCE 10 minutes ago`
 
 Questions 1:
 
 1. You have realized that the log messages also contain users. Can you programmatically parse that in New Relic?
+2. Parsing every single time you want to query the user seems a bit exhausting? Wouldn't you want to store the user directly as a separate attribute?
+
+Answers 1:
+
+1. `FROM Log WITH aparse(message, 'user:*|message:*') AS (user, msg) SELECT user, msg`
+2. Grok rule
+   - `message LIKE '%user:%'`
+   - `user:%{GREEDYDATA:user}\|message:%{GREEDYDATA:message}`
 
 ## Wrap up
