@@ -77,8 +77,8 @@ Answers to questions 2 from step 1:
      - `k8s.node.name = otel-control-plane`
      - `k8s.namespace.name = otel`
      - `k8s.pod.name = ...`
-2. Joe has 2 and donald has 3 instances
-   - `FROM Metric SELECT uniqueCount(k8s.pod.name) WHERE service.name IN ('joe', 'donald') FACET service.name SINCE 5 minutes ago`
+2. Joe has 3 and donald has 2 instances
+   - `FROM Metric SELECT uniques(k8s.pod.name) WHERE service.name IN ('joe', 'donald') SINCE 5 minutes ago`
 
 Questions 1:
 
@@ -91,14 +91,15 @@ Answers 1:
 1. Golden metrics
    - donald [`server latency`]: `FROM Metric SELECT average(http.server.duration) WHERE service.name = 'donald' SINCE 10 minutes ago`
    - donald [`server throughput`]: `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' SINCE 10 minutes ago`
-   - donald [`server throughput`]: `FROM Metric SELECT filter(count(http.server.duration), WHERE numeric(http.status_code) >= 500)/count(http.server.duration) WHERE service.name = 'donald' SINCE 10 minutes ago`
+   - donald [`server error rate`]: `FROM Metric SELECT filter(count(http.server.duration), WHERE numeric(http.status_code) >= 500)/count(http.server.duration) WHERE service.name = 'donald' SINCE 10 minutes ago`
    - joe [`client latency`]: `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' SINCE 10 minutes ago`
    - joe [`client throughput`]: `FROM Metric SELECT rate(count(http.client.duration), 1 minute) WHERE service.name = 'joe' SINCE 10 minutes ago`
-   - joe [`client throughput`]: `FROM Metric SELECT filter(count(http.client.duration), WHERE numeric(http.status_code) >= 500)/count(http.client.duration) WHERE service.name = 'joe' SINCE 10 minutes ago`
+   - joe [`client error rate`]: `FROM Metric SELECT filter(count(http.client.duration), WHERE numeric(http.status_code) >= 500)/count(http.client.duration) WHERE service.name = 'joe' SINCE 10 minutes ago`
 2. Group according to HTTP methods
    - `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' FACET http.method SINCE 10 minutes ago`
 3. Group according pods
    - `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' FACET k8s.pod.name SINCE 10 minutes ago`
+   - `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' FACET k8s.pod.name SINCE 10 minutes ago`
 
 **Generate some errors 😈**
 
@@ -212,7 +213,7 @@ You go back to your developers and say:
 
 - We keep getting errors from our database queries
 - Often joe returns `400` before it can even reach donald
-  - `FROM Span SELECT * WHERE http.status_code IS NOT NULL AND http.status_code > 399 SINCE 10 minutes ago`
+  - `FROM Span SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE http.status_code IS NOT NULL AND http.status_code = 400) SINCE 10 minutes ago`
 - Sometimes it takes too long for donald to respond after querying the database
   - `FROM Span SELECT * WHERE service.name = 'donald' AND duration.ms > (FROM Span SELECT percentile(duration.ms, 99.9) WHERE service.name = 'donald') SINCE 10 minutes ago`
 
