@@ -54,7 +54,7 @@ func performRequestToDonald(
 		reqParams[k] = v[0]
 	}
 	// Make the call
-	return performHttpCall(r.Method, user, reqParams)
+	return performHttpCall(r.Context(), r.Method, user, reqParams)
 }
 
 func performPreprocessing(

@@ -281,7 +281,7 @@ func produceSchemaNotFoundInCacheWarning(
 	schemaNotFoundInCacheWarning := r.URL.Query().Get("schemaNotFoundInCacheWarning")
 	if schemaNotFoundInCacheWarning == "true" {
 		user := getUser(r)
-		log(logrus.ErrorLevel, ctx, user, "Processing schema not found in cache. Calculating from scratch.")
+		log(logrus.WarnLevel, ctx, user, "Processing schema not found in cache. Calculating from scratch.")
 		time.Sleep(time.Millisecond * 500)
 	} else {
 		time.Sleep(time.Millisecond * 10)
