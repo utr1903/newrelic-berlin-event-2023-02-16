@@ -82,24 +82,24 @@ Answers to questions 2 from step 1:
 
 Questions 1:
 
-1. What's the average values of the golden metrics for the last 10 minutes?
+1. What's the average values of the golden metrics for the last 5 minutes?
 2. How do they look like for different HTTP methods?
 3. How do they look like for different instances?
 
 Answers 1:
 
 1. Golden metrics
-   - donald [`server latency`]: `FROM Metric SELECT average(http.server.duration) WHERE service.name = 'donald' SINCE 10 minutes ago`
-   - donald [`server throughput`]: `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' SINCE 10 minutes ago`
-   - donald [`server error rate`]: `FROM Metric SELECT filter(count(http.server.duration), WHERE numeric(http.status_code) >= 500)/count(http.server.duration) WHERE service.name = 'donald' SINCE 10 minutes ago`
-   - joe [`client latency`]: `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' SINCE 10 minutes ago`
-   - joe [`client throughput`]: `FROM Metric SELECT rate(count(http.client.duration), 1 minute) WHERE service.name = 'joe' SINCE 10 minutes ago`
-   - joe [`client error rate`]: `FROM Metric SELECT filter(count(http.client.duration), WHERE numeric(http.status_code) >= 500)/count(http.client.duration) WHERE service.name = 'joe' SINCE 10 minutes ago`
+   - donald [`server latency`]: `FROM Metric SELECT average(http.server.duration) WHERE service.name = 'donald' SINCE 5 minutes ago`
+   - donald [`server throughput`]: `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' SINCE 5 minutes ago`
+   - donald [`server error rate`]: `FROM Metric SELECT filter(count(http.server.duration), WHERE numeric(http.status_code) >= 500)/count(http.server.duration) WHERE service.name = 'donald' SINCE 5 minutes ago`
+   - joe [`client latency`]: `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' SINCE 5 minutes ago`
+   - joe [`client throughput`]: `FROM Metric SELECT rate(count(http.client.duration), 1 minute) WHERE service.name = 'joe' SINCE 5 minutes ago`
+   - joe [`client error rate`]: `FROM Metric SELECT filter(count(http.client.duration), WHERE numeric(http.status_code) >= 500)/count(http.client.duration) WHERE service.name = 'joe' SINCE 5 minutes ago`
 2. Group according to HTTP methods
-   - `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' FACET http.method SINCE 10 minutes ago`
+   - `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' FACET http.method SINCE 5 minutes ago`
 3. Group according pods
    - `FROM Metric SELECT average(http.client.duration) WHERE service.name = 'joe' FACET k8s.pod.name SINCE 10 minutes ago`
-   - `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' FACET k8s.pod.name SINCE 10 minutes ago`
+   - `FROM Metric SELECT rate(count(http.server.duration), 1 minute) WHERE service.name = 'donald' FACET k8s.pod.name SINCE 5 minutes ago`
 
 **Generate some errors 😈**
 
@@ -299,8 +299,8 @@ Answers to questions 1 from step 6:
    - ![`step07_error_trace_1.png`](/docs/step07_error_trace_1.png)
    - ![`step07_error_trace_2.png`](/docs/step07_error_trace_2.png)
    - You can also programmatically obtain them easily:
-     - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND duration.ms > (FROM Span SELECT percentile(duration.ms, 99.9) WHERE service.name = 'donald')) SINCE 10 minutes ago`
-     - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND otel.status_code = 'ERROR')) SINCE 10 minutes ago`
+     - `FROM Log SELECT * WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND duration.ms > (FROM Span SELECT percentile(duration.ms, 99.5) WHERE service.name = 'donald')) SINCE 10 minutes ago`
+     - `FROM Log SELECT message WHERE trace.id IN (FROM Span SELECT uniques(trace.id) WHERE service.name = 'donald' AND otel.status_code = 'ERROR') SINCE 10 minutes ago`
 
 Questions 1:
 
@@ -313,5 +313,3 @@ Answers 1:
 2. Grok rule
    - `message LIKE '%user:%'`
    - `user:%{GREEDYDATA:user}\|message:%{GREEDYDATA:message}`
-
-## Wrap up
